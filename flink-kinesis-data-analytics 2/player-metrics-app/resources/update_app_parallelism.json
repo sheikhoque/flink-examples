@@ -1,0 +1,11 @@
+{
+  "ApplicationName": "VideoMetricsLoadApp",
+  "ApplicationConfigurationUpdate": {
+      "FlinkApplicationConfigurationUpdate":{
+          "ParallelismConfigurationUpdate": {
+            "ParallelismUpdate": 64,
+            "ConfigurationTypeUpdate": "CUSTOM"
+          }
+      }
+  }
+}

@@ -1,0 +1,612 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Mappings:
+  EnvironmentToSecurityGroup:
+    dev-int:
+      SecurityGroup: sg-ae5fb8d4
+    prod:
+      SecurityGroup: sg-9e3d1de5
+    sandbox:
+      SecurityGroup: sg-ae5fb8d4
+    stage:
+      SecurityGroup: sg-ae5fb8d4
+  EnvironmentToSubnetId:
+    dev-int:
+      SubnetID1: subnet-9f11b8d4
+      SubnetID2: subnet-38008f41
+      vpcId: vpc-628d3005
+    prod:
+      SubnetID1: subnet-0ce5360adc323ba9d
+      SubnetID2: subnet-0b5fe85268dd0fdcf
+      vpcId: vpc-a34cffc4
+    sandbox:
+      SubnetID1: subnet-9f11b8d4
+      SubnetID2: subnet-38008f41
+      vpcId: vpc-628d3005
+    stage:
+      SubnetID1: subnet-9f11b8d4
+      SubnetID2: subnet-38008f41
+      vpcId: vpc-628d3005
+Outputs:
+  ElasticsearchServiceArn:
+    Description: The ARN of the ElasticSearch Domain
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-es-arn-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - ElasticsearchService
+        - Arn
+  ElasticsearchServiceEP:
+    Description: The Endpoint for ElasticSearch Domain
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-es-ep-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - ElasticsearchService
+        - DomainEndpoint
+  FirehoseRawsDataStream:
+    Description: The ARN of the firehose delivery stream
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-RawFirehoseStream-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - RawFirehoseDataStream
+        - Arn
+  FirehoseSessionDataStream:
+    Description: The ARN of the firehose delivery stream
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-SessionFirehoseStream-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - SessionFirehoseDataStream
+        - Arn
+  InputKinesisStream:
+    Description: The ARN of the Kinesis Input stream
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-InputKinesisStream-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - InputKinesisStream
+        - Arn
+  KdaSecurityGroup:
+    Description: The ARN of the Kinesis Input stream
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-kda-sg-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - KdaSecurityGroup
+        - GroupId
+  SessionKinesisStream:
+    Description: The ARN of the Kinesis Session stream
+    Export:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-SessionKinesisStream-${parameters.Environment}
+    Value:
+      'Fn::GetAtt':
+        - SessionKinesisStream
+        - Arn
+Parameters:
+  ESSnapshotbucket:
+    Default: '${parameters.ESSnapshotbucket}'
+    Description: S3 Bucket for ES Snapshots
+    Type: String
+  ElasticSearchDomainName:
+    Default: 'aeg-vidqty-${parameters.cloudFormationStackName}-${parameters.Environment}'
+    Description: Name of ElasticSearch domain
+    Type: String
+  EnvironmentName:
+    AllowedValues:
+      - prod
+      - stage
+      - dev-int
+      - sandbox
+    ConstraintDescription: 'must be a prod, stage, dev-int, or sandbox'
+    Default: '${parameters.Environment}'
+    Description: The environment name
+    Type: String
+  Infras3Bucket:
+    Default: '${parameters.Infras3Bucket}'
+    Description: S3 Bucket name for Infrastructure(Lambda Functions)
+    Type: String
+  InputShardCount:
+    Default: 2
+    Description: Number of initial shards for Input Datastream
+    Type: String
+  RawS3bucket:
+    Default: '${parameters.RawS3bucket}'
+    Description: S3 Bucket for Raw Data
+    Type: String
+  SessionS3bucket:
+    Default: '${parameters.SessionS3bucket}'
+    Description: S3 Bucket for Output Firehose for reporting
+    Type: String
+  SessionShardCount:
+    Default: 2
+    Description: Number of initial shards for Session Datastream
+    Type: String
+Resources:
+  ElasticSearchSecurityGroup:
+    DeletionPolicy: Retain
+    Properties:
+      GroupDescription: Security group for Video Quality Elastic Search
+      GroupName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-es-${parameters.Environment}
+      SecurityGroupIngress:
+        - CidrIp: 10.0.0.0/8
+          FromPort: '443'
+          IpProtocol: tcp
+          ToPort: '443'
+      VpcId:
+        'Fn::FindInMap':
+          - EnvironmentToSubnetId
+          - Ref: EnvironmentName
+          - vpcId
+    Type: 'AWS::EC2::SecurityGroup'
+  ElasticSearchSgIngress:
+    DeletionPolicy: Retain
+    DependsOn:
+      - ElasticSearchSecurityGroup
+      - KdaSecurityGroup
+    Properties:
+      FromPort: 443
+      GroupId:
+        'Fn::GetAtt':
+          - ElasticSearchSecurityGroup
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - KdaSecurityGroup
+          - GroupId
+      ToPort: 443
+    Type: 'AWS::EC2::SecurityGroupIngress'
+  ElasticsearchService:
+    DeletionPolicy: Retain
+    Properties:
+      AccessPolicies:
+        'Fn::Sub': |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": "*"
+                },
+                "Action": [
+                  "es:ESHttpGet",
+                  "es:ESHttpHead"
+                ],
+                "Resource": "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ElasticSearchDomainName}/*"
+              }
+            ]
+          }
+      DomainName: >-
+        aeg-vidqty-${parameters.cloudFormationStackName}-es-${parameters.Environment}
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 50
+        VolumeType: gp2
+      ElasticsearchClusterConfig:
+        DedicatedMasterCount: 3
+        DedicatedMasterEnabled: true
+        DedicatedMasterType: m4.large.elasticsearch
+        InstanceCount: 4
+        InstanceType: r5.xlarge.elasticsearch
+        ZoneAwarenessEnabled: true
+      ElasticsearchVersion: 6.8
+      EncryptionAtRestOptions:
+        Enabled: 'true'
+      VPCOptions:
+        SecurityGroupIds:
+          - Ref: ElasticSearchSecurityGroup
+        SubnetIds:
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID1
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID2
+    Type: 'AWS::Elasticsearch::Domain'
+  InputKinesisStream:
+    DeletionPolicy: Retain
+    Properties:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-kds-input-${parameters.Environment}
+      RetentionPeriodHours: 24
+      ShardCount: '${parameters.InputShardCount}'
+    Type: 'AWS::Kinesis::Stream'
+  KdaSecurityGroup:
+    DeletionPolicy: Retain
+    Properties:
+      GroupDescription: Security group for Video Quality KDA
+      GroupName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-kda-${parameters.Environment}
+      SecurityGroupIngress:
+        - CidrIp: 10.0.0.0/8
+          FromPort: '443'
+          IpProtocol: tcp
+          ToPort: '443'
+      VpcId:
+        'Fn::FindInMap':
+          - EnvironmentToSubnetId
+          - Ref: EnvironmentName
+          - vpcId
+    Type: 'AWS::EC2::SecurityGroup'
+  KdaSgIngress:
+    DeletionPolicy: Retain
+    DependsOn:
+      - ElasticSearchSecurityGroup
+      - KdaSecurityGroup
+    Properties:
+      FromPort: 443
+      GroupId:
+        'Fn::GetAtt':
+          - KdaSecurityGroup
+          - GroupId
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        'Fn::GetAtt':
+          - ElasticSearchSecurityGroup
+          - GroupId
+      ToPort: 443
+    Type: 'AWS::EC2::SecurityGroupIngress'
+  LambdaScaleRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Sid: ''
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - 'arn:aws:iam::aws:policy/AmazonKinesisFullAccess'
+        - 'arn:aws:iam::aws:policy/AWSLambdaFullAccess'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      Path: /
+      RoleName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-lambda-role-${parameters.Environment}
+    Type: 'AWS::IAM::Role'
+  LambdaShardScalerIn:
+    Properties:
+      CodeUri:
+        Bucket: '${parameters.Infras3Bucket}'
+        Key: shard_scale_in.zip
+      Environment:
+        Variables:
+          Stream_Name:
+            Ref: InputKinesisStream
+      FunctionName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-scaledown-function-${parameters.Environment}
+      Handler: shard_scale_in.lambda_handler
+      Role:
+        'Fn::GetAtt':
+          - LambdaScaleRole
+          - Arn
+      Runtime: python3.6
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::FindInMap':
+              - EnvironmentToSecurityGroup
+              - Ref: EnvironmentName
+              - SecurityGroup
+        SubnetIds:
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID1
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID2
+    Type: 'AWS::Serverless::Function'
+  LambdaShardScalerOut:
+    Properties:
+      CodeUri:
+        Bucket: '${parameters.Infras3Bucket}'
+        Key: shard_scale_out.zip
+      Environment:
+        Variables:
+          Stream_Name:
+            Ref: InputKinesisStream
+      FunctionName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-scaleup-function-${parameters.Environment}
+      Handler: shard_scale_out.lambda_handler
+      Role:
+        'Fn::GetAtt':
+          - LambdaScaleRole
+          - Arn
+      Runtime: python3.6
+      VpcConfig:
+        SecurityGroupIds:
+          - 'Fn::FindInMap':
+              - EnvironmentToSecurityGroup
+              - Ref: EnvironmentName
+              - SecurityGroup
+        SubnetIds:
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID1
+          - 'Fn::FindInMap':
+              - EnvironmentToSubnetId
+              - Ref: EnvironmentName
+              - SubnetID2
+    Type: 'AWS::Serverless::Function'
+  PermissionForEventsToInvokeLambdaIn:
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Ref: LambdaShardScalerIn
+      Principal: events.amazonaws.com
+      SourceArn:
+        'Fn::GetAtt':
+          - ScheduledRuleIn
+          - Arn
+    Type: 'AWS::Lambda::Permission'
+  PermissionForEventsToInvokeLambdaOut:
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Ref: LambdaShardScalerOut
+      Principal: events.amazonaws.com
+      SourceArn:
+        'Fn::GetAtt':
+          - ScheduledRuleOut
+          - Arn
+    Type: 'AWS::Lambda::Permission'
+  RawFirehoseDataStream:
+    DependsOn:
+      - RawFirehoseDeliveryPolicy
+    Properties:
+      DeliveryStreamName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-raw-kdf-${parameters.Environment}
+      DeliveryStreamType: KinesisStreamAsSource
+      ExtendedS3DestinationConfiguration:
+        BucketARN: 'arn:aws:s3:::${parameters.RawS3bucket}'
+        BufferingHints:
+          IntervalInSeconds: '60'
+          SizeInMBs: '50'
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName:
+            Ref: RawFirehoseLogGroup
+          LogStreamName: S3Delivery
+        CompressionFormat: UNCOMPRESSED
+        ErrorOutputPrefix: >-
+          raw_errors/!{firehose:error-output-type}/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/
+        Prefix: 'raw/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
+        RoleARN:
+          'Fn::GetAtt':
+            - RawFirehoseDeliveryRole
+            - Arn
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN:
+          'Fn::GetAtt':
+            - InputKinesisStream
+            - Arn
+        RoleARN:
+          'Fn::GetAtt':
+            - RawFirehoseDeliveryRole
+            - Arn
+    Type: 'AWS::KinesisFirehose::DeliveryStream'
+  RawFirehoseDeliveryPolicy:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+              - 'kinesis:DescribeStream'
+              - 'kinesis:ListShards'
+              - 'kinesis:GetShardIterator'
+              - 'kinesis:GetRecords'
+            Effect: Allow
+            Resource:
+              - 'arn:aws:s3:::${parameters.RawS3bucket}'
+              - 'arn:aws:s3:::${parameters.RawS3bucket}/*'
+              - 'Fn::GetAtt':
+                  - InputKinesisStream
+                  - Arn
+          - Action:
+              - 'logs:DescribeLogGroups'
+              - 'logs:DescribeLogStreams'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Sub': >-
+                arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${RawFirehoseLogGroup}
+        Version: '2012-10-17'
+      PolicyName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-raw-kdf-${parameters.Environment}
+      Roles:
+        - Ref: RawFirehoseDeliveryRole
+    Type: 'AWS::IAM::Policy'
+  RawFirehoseDeliveryRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId':
+                  Ref: 'AWS::AccountId'
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Sid: ''
+        Version: '2012-10-17'
+      RoleName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-raw-kdf-${parameters.Environment}
+    Type: 'AWS::IAM::Role'
+  RawFirehoseLogGroup:
+    Properties:
+      LogGroupName: >-
+        /aws/kinesisfirehose/aeg-videoquality-${parameters.cloudFormationStackName}-raw-loggroup-${parameters.Environment}
+      RetentionInDays: 7
+    Type: 'AWS::Logs::LogGroup'
+  RawFirehoseLogStream:
+    Properties:
+      LogGroupName:
+        Ref: RawFirehoseLogGroup
+      LogStreamName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-raw-logstream-${parameters.Environment}
+    Type: 'AWS::Logs::LogStream'
+  ScheduledRuleIn:
+    Properties:
+      Description: ScheduledRuleIn
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-scaledown-rule-${parameters.Environment}
+      ScheduleExpression: cron(00 10 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - LambdaShardScalerIn
+              - Arn
+          Id: '2'
+    Type: 'AWS::Events::Rule'
+  ScheduledRuleOut:
+    Properties:
+      Description: ScheduledRuleOut
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-scaleup-rule-${parameters.Environment}
+      ScheduleExpression: cron(00 22 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - LambdaShardScalerOut
+              - Arn
+          Id: '1'
+    Type: 'AWS::Events::Rule'
+  SessionFirehoseDataStream:
+    DependsOn:
+      - SessionFirehoseDeliveryPolicy
+    Properties:
+      DeliveryStreamName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-session-kdf-${parameters.Environment}
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN:
+          'Fn::GetAtt':
+              - SessionKinesisStream
+              - Arn
+        RoleARN:
+          'Fn::GetAtt':
+            - SessionFirehoseDeliveryRole
+            - Arn
+      ExtendedS3DestinationConfiguration:
+        BucketARN: 'arn:aws:s3:::${parameters.SessionS3bucket}'
+        BufferingHints:
+          IntervalInSeconds: '900'
+          SizeInMBs: '128'
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName:
+            Ref: SessionFirehoseLogGroup
+          LogStreamName: S3Delivery
+        CompressionFormat: UNCOMPRESSED
+        EncryptionConfiguration:
+          NoEncryptionConfig: NoEncryption
+        ErrorOutputPrefix: >-
+          sessions_errors/!{firehose:error-output-type}/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/
+        Prefix: >-
+          sessions/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/
+        RoleARN:
+          'Fn::GetAtt':
+            - SessionFirehoseDeliveryRole
+            - Arn
+        S3BackupMode: Disabled
+    Type: 'AWS::KinesisFirehose::DeliveryStream'
+  SessionFirehoseDeliveryPolicy:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              - 'arn:aws:s3:::${parameters.SessionS3bucket}'
+              - 'arn:aws:s3:::${parameters.SessionS3bucket}/*'
+          - Action:
+              - 'kinesis:DescribeStream'
+              - 'kinesis:ListShards'
+              - 'kinesis:GetShardIterator'
+              - 'kinesis:GetRecords'
+            Effect: Allow
+            Resource:
+              'Fn::GetAtt':
+                  - SessionKinesisStream
+                  - Arn
+          - Action:
+              - 'logs:DescribeLogGroups'
+              - 'logs:DescribeLogStreams'
+              - 'logs:PutLogEvents'
+            Effect: Allow
+            Resource:
+              'Fn::Sub': >-
+                arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${SessionFirehoseLogGroup}
+        Version: '2012-10-17'
+      PolicyName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-session-kdf-${parameters.Environment}
+      Roles:
+        - Ref: SessionFirehoseDeliveryRole
+    Type: 'AWS::IAM::Policy'
+  SessionFirehoseDeliveryRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId':
+                  Ref: 'AWS::AccountId'
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Sid: ''
+        Version: '2012-10-17'
+      RoleName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-session-kdf-${parameters.Environment}
+    Type: 'AWS::IAM::Role'
+  SessionFirehoseLogGroup:
+    Properties:
+      LogGroupName: >-
+        /aws/kinesisfirehose/aeg-videoquality-${parameters.cloudFormationStackName}-session-loggroup-${parameters.Environment}
+      RetentionInDays: 7
+    Type: 'AWS::Logs::LogGroup'
+  SessionFirehoseLogStream:
+    Properties:
+      LogGroupName:
+        Ref: SessionFirehoseLogGroup
+      LogStreamName: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-session-logstream-${parameters.Environment}
+    Type: 'AWS::Logs::LogStream'
+  SessionKinesisStream:
+    DeletionPolicy: Delete
+    Properties:
+      Name: >-
+        aeg-videoquality-${parameters.cloudFormationStackName}-kds-session-${parameters.Environment}
+      RetentionPeriodHours: 24
+      ShardCount: '${parameters.SessionShardCount}'
+    Type: 'AWS::Kinesis::Stream'
+Transform: 'AWS::Serverless-2016-10-31'

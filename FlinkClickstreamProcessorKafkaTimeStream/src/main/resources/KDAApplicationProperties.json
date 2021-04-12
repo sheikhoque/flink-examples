@@ -1,0 +1,18 @@
+[
+  {
+    "PropertyGroupId": "FlinkApplicationProperties",
+    "PropertyMap": {
+      "Region": "us-west-2",
+      "BootstrapServers": "localhost:9092",
+      "GroupId": "flink-local-clickstream-processor",
+      "SchemaRegistryUrl": "http://ec2-54-200-179-28.us-west-2.compute.amazonaws.com:8081",
+      "ZookeeperConnect": "localhost:2181",
+      "Topic": "test",
+      "TimestreamDB": "clickstream",
+      "TimestreamBatchSize": 1,
+      "DepartmentAggTable": "product_type_details",
+      "UserAggTable": "usersessioncount",
+      "UserSessionTable": "usersessioncount"
+    }
+  }
+]

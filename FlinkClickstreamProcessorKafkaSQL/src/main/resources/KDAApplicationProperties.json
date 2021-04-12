@@ -1,0 +1,17 @@
+[
+  {
+    "PropertyGroupId": "FlinkApplicationProperties",
+    "PropertyMap": {
+      "ElasticsearchEndpoint": "https://vpc-msk-cli-elasti-14ldgnmg2fb1l-joznmofvbeo6yb75rlahrsx7fi.us-west-2.es.amazonaws.com:9300",
+      "Region": "us-west-2",
+      "BootstrapServers": "b-3.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:9092,b-1.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:9092,b-2.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:9092",
+      "GroupId": "flink-clickstream-local-sql-processor",
+      "SchemaUrl": "http://127.0.0.1:8081",
+      "ZookeeperConnect": "z-2.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:2181,z-3.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:2181,z-1.mskcluster-msk-clickst.gorcyp.c7.kafka.us-west-2.amazonaws.com:2181",
+      "Topic": "ExampleTopic",
+      "DepartmentsAgg_Topic": "Departments_Agg",
+      "clickEventsUserIdAggResult_Topic": "ClickEvents_UserId_Agg_Result",
+      "userSessionsAggregatesWithOrderCheckout_Topic": "User_Sessions_Aggregates_With_Order_Checkout"
+    }
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "ApplicationName": "VideoMetricsApp",
+  "ApplicationConfigurationUpdate": {
+    "ApplicationCodeConfigurationUpdate": {
+      "CodeContentUpdate": {
+        "S3ContentLocationUpdate": {
+          "BucketARNUpdate": "arn:aws:s3:::att-dtv-raptor-kda",
+          "FileKeyUpdate": "flink_app/player-metrics-app-0.0.1-SNAPSHOT.jar"
+        }
+      }
+    }
+  }
+}

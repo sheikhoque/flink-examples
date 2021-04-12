@@ -1,0 +1,37 @@
+{
+	"sid": "Session Id. Number (int/long)",
+	"seq_st": "First sequence (starting at 0) of messages/heartbeats in a session at interval",
+	"seq_end": "Last sequence of messages/heartbeats in a session at interval",
+	"cid": "Client/Player ID. String",
+	"vid": "Viewer Id. Customer related number",
+	"sst": "Session Start Time. Epoch. Number (double)",
+	"ts": "timestamp. Formatted 'sst' + 'st'. Format: yyyy-MM-dd HH:mm:ss",
+	"an": "Asset Name. String",
+	"ct": "Connection type. String (WIFI, Cellular, etc)",
+	"c_md":{
+		"description": "Client metadata block",
+		"pt": "Player type. String",
+		"ptv": "Player type version. String"
+	},
+	"cntn_md":{
+		"description": "Content metadata block",
+		"lv": "Live indicator. true/false"
+	},
+	"s_md":{
+		"description": "Session metadata block",
+		"launchType": "Launch Type. String (UserClick, ???)"
+	},
+	"bl": {
+		"value": "Average buffer length in ms for given resolution",
+		"start": "milliseconds from time window start",
+		"end": "milliseconds from time window start. This value is MIN(end-of-window, heartbeat-ts)"
+	},
+	"br": {
+		"value": "Average bitrate in kbs",
+		"start": "milliseconds from time window start",
+		"end": "milliseconds from time window start. This value is MIN(end-of-window, heartbeat-ts)"
+	},
+	"vst":{
+		"value": "Video startup time in milliseconds"
+	}
+}

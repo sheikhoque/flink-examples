@@ -1,0 +1,14 @@
+[{
+    "PropertyGroupId": "VideoStatsApp",
+    "PropertyMap": {
+        "sourceEndpoint": "kinesis://video-metrics-loadtest",
+        "region":"us-west-2",
+        "intervalStatsEndpoint":"ess://search-kinesis-elasti-1mp3rw0zypl07-eegkhp4pvktxw2ffsb6ogry2ia.us-west-2.es.amazonaws.com",
+        "intervalStatsIndexName":"sessions",
+        "intervalLength":"1,60",
+        "parallelism":4,
+        "cdn.map.location":"s3://att-dtv-raptor-kda/flink_app_load/cdn_url_mapping.csv",
+        "sessionStatsEndpoint": "firehose://fh-video-metrics-report"
+    }
+
+}]

@@ -1,0 +1,7 @@
+# Project exclude paths
+target/
+dependency-reduced-pom.xml
+.idea/
+KafkaClickstreamClient.iml
+.DS_Store
+ClickstreamProcessor.iml

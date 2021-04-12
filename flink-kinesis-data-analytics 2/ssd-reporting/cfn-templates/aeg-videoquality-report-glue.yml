@@ -1,0 +1,224 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  EnvironmentName:
+    AllowedValues:
+      - prod
+      - stage
+      - dev-int
+      - sandbox
+    ConstraintDescription: "must be a prod, stage, dev-int, or sandbox"
+    Default: "${parameters.Environment}"
+    Description: The environment name
+    Type: String
+  CFNJobName:
+    Type: String
+    Default: >- 
+      aeg-videoquality-${parameters.cloudFormationStackName}-session-report-generator-${parameters.Environment}
+  CFNTriggerName:
+    Type: String
+    Default: >-
+      aeg-videoquality-${parameters.cloudFormationStackName}-session-report-job-trigger-${parameters.Environment}
+  ScriptLocation:
+    Type: String
+    Default: >-
+      s3://${parameters.Infras3Bucket}/session_report_script.py
+    Description: 'location of the glue script file, you dont need to append "s3://". CloudFormation template will do it.'
+  SSDReportDestination:
+    Type: String
+    Default: >-
+      s3://${parameters.SessionS3bucket}/ssd
+    Description: 'location of the transformed csv/orc files, need to append "s3://".'
+  MissingHeartbeatReportDestination:
+    Type: String
+    Default: s3://${parameters.SessionS3bucket}/missing_heartbeat_report
+    Description: 'location of the transformed csv/orc files, need to append "s3://".'
+  ExpiredSessionReportDestination:
+    Type: String
+    Default: s3://${parameters.SessionS3bucket}/session_expired_report
+    Description: 'location of the transformed csv/orc files, need to append "s3://".'
+  InputRawHBSource:
+    Type: String
+    Default: >-
+      s3://${parameters.RawS3bucket}/raw_heartbeats
+    Description: 'location of input directory of json files, need to append "s3://".'
+  InputSessionDataSource:
+    Type: String
+    Default: >-
+      s3://${parameters.SessionS3bucket}/sessions
+    Description: 'location of input directory of json files, need to append "s3://".'
+  SSDReportCSVNamePrefix:
+    Type: String
+    Default: >-
+      DailySessionLog_ATTTV_prod
+    Description: "csv file name prefix"
+#
+#
+# Resources section defines metadata for the Data Catalog
+Resources:
+  #Create IAM Role
+  CFNGlueJobIAMRoleName:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: !Join ["-", ["AWSGlue", !Ref CFNJobName, "policy"]]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [1, "Fn::Split": ["//", !Ref SSDReportDestination]],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [
+                              1,
+                              "Fn::Split":
+                                ["//", !Ref MissingHeartbeatReportDestination],
+                            ],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [
+                              1,
+                              "Fn::Split":
+                                ["//", !Ref ExpiredSessionReportDestination],
+                            ],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [1, "Fn::Split": ["//", !Ref ScriptLocation]],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [1, "Fn::Split": ["//", !Ref InputRawHBSource]],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [
+                              1,
+                              "Fn::Split": ["//", !Ref InputSessionDataSource],
+                            ],
+                          "*",
+                        ],
+                      ],
+                  ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+  # The script already exists and is called by this job
+  CFNJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Role: !Ref CFNGlueJobIAMRoleName
+      Description: Job created with CloudFormation to generate ssd , missing heartbeat and expired session report
+      GlueVersion: "2.0"
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          !Ref ScriptLocation
+          # for access to directories use proper IAM role with permission to buckets and folders that begin with "aws-glue-"
+          # script uses temp directory from job definition if required (temp directory not used S3 to S3)
+          # script defines target for output as s3://aws-glue-target/sal
+        PythonVersion: "3"
+      DefaultArguments:
+        --SSD_DEST: !Ref SSDReportDestination
+        --EXPIRED_SESSION_DEST: !Ref ExpiredSessionReportDestination
+        --MISSING_HB_DEST: !Ref MissingHeartbeatReportDestination
+        --INPUT_RAW_HB_SOURCE: !Ref InputRawHBSource
+        --INPUT_SESSION_DATA_SOURCE: !Ref InputSessionDataSource
+        --CSV_SSD_REPORT_NAME_PREFIX: !Ref SSDReportCSVNamePrefix
+        --REPORT_DATE: " "
+      AllocatedCapacity: 5
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      Name: !Ref CFNJobName
+      # Create trigger to run an existing job (CFNJobName) on a cron schedule.
+  CFNTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name:
+        Ref: CFNTriggerName
+      Description: Trigger created with CloudFormation
+      Type: SCHEDULED
+      WorkflowName: { Ref: GlueWorkFlow }
+      Actions:
+        - JobName: !Ref CFNJob
+        # Arguments: JSON object
+      StartOnCreation: true
+      Schedule: cron(00 08 * * ? *)
+      #Predicate:
+  GlueWorkFlow:
+    Type: AWS::Glue::Workflow
+    Properties: { Name: aeg-videoquality-${parameters.cloudFormationStackName}-session-report-workflow-${parameters.Environment} }

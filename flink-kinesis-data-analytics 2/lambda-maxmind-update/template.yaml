@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS
+
+Resources:
+  SQSQueuePolicy:
+    DependsOn:
+      - SQSQueue
+      - SendSQS
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: !GetAtt SQSQueue.Arn
+        Statement:
+          - Sid: Sid1586848758785
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - "SQS:ReceiveMessage"
+              - "SQS:GetQueueUrl"
+              - "SQS:SendMessage"
+              - "SQS:DeleteMessage"
+            Resource: !GetAtt SQSQueue.Arn
+      Queues:
+        - !Ref SQSQueue
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: s3-maxmind-db-update
+  SendSQS:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: SendUpdateMaxmindSignal
+      Role: arn:aws:iam::245459132561:role/aeg-raptor-ovclient2-lambda-role
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables:
+          QUEUE_NAME: s3-maxmind-db-update
+      CodeUri: s3://att-dtv-raptor-kda/lambda/OVSendUpdateMaxmindSignal.zip
+      Handler: send_sqs_cmd.lambda_handler
+      Runtime: python3.7
+# CF sucks!
+#      Events:
+#        S3Trigger:
+#          Type: S3
+#          Properties:
+#            Bucket: "att-dtv-raptor-kda"
+#            Events: s3:ObjectCreated:*
+  UpdateMaxmindDB:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: UpdateMaxmindDB
+      Role: arn:aws:iam::245459132561:role/aeg-raptor-ovclient2-lambda-role
+      MemorySize: 256
+      Timeout: 600
+      Environment:
+        Variables:
+#          AWS_DEFAULT_REGION: us-west-2
+          DB_LIST: GeoLite2-ASN,GeoLite2-City
+          MAXMIND_S3_BUCKET: att-dtv-raptor-kda
+          MAXMIND_S3_PREFIX: maxmind/
+          MAXMIND_SECRET_NAME: maxmind_license_key
+      CodeUri: s3://att-dtv-raptor-kda/lambda/OVSendUpdateMaxmindSignal.zip
+      Handler: update_maxmind.lambda_handler
+      Runtime: python3.7
+  UpdateMaxmindSchedule:
+    DependsOn:
+      - UpdateMaxmindDB
+    Type: AWS::Events::Rule
+    Properties:
+      Name: UpdateMaxmindSchedule
+      Description: "UpdateMaxmindSchedule"
+      ScheduleExpression: "rate(10 minutes)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "UpdateMaxmindDB"
+              - "Arn"
+          Id: "UpdateMaxmindDB"
+  PermissionForEventsToInvokeLambda:
+    DependsOn:
+      - UpdateMaxmindDB
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: "UpdateMaxmindDB"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "UpdateMaxmindSchedule"
+          - "Arn"
+  MaxmindLicenseKey:
+   Type: AWS::SecretsManager::Secret
+   Properties:
+     Name: "maxmind_license_key"
+     SecretString: "9yUVRSI4GIHPBEfi"
+#  MaxmindLicenseKeyPolicy:
+#   Type: 'AWS::SecretsManager::ResourcePolicy'
+#   Properties:
+#     SecretId: !Ref MaxmindLicenseKey
+#     ResourcePolicy:
+#       Version: 2019-10-19
+#       Statement:
+#         - Resource: '*'
+#           Action: 'secretsmanager:DeleteSecret'
+#           Effect: Deny
+#           Principal:
+#             AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'

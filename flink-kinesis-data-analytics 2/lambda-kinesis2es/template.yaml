@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS
+Globals:
+  Function:
+    Timeout: 20
+
+Resources:
+  Kinesis2ESPassthrough:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: Kinesis2ES
+      Handler: com.att.dtv.lambda.App::handleRequest
+      Runtime: java8
+      MemorySize: 512
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          ES_ENDPOINT: "https://search-search-es-web-elastic-6icgfm3w7uuj3xsdpxoksvtlvu.us-west-2.es.amazonaws.com"

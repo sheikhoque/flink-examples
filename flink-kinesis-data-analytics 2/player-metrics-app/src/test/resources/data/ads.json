@@ -1,0 +1,129 @@
+{
+  "sevs": [
+    {
+      "t": "ACEHBURLChangeEvent",
+      "st": "14313",
+      "sseq": 3,
+      "bl": "0",
+      "old": {
+        "url": "Unknown"
+      },
+      "new": {
+        "url": "https://csm-e-dfwvod-eb.geoloc.yospace.com/csm/access/2003...",
+        "pht": 167125,
+        "br": "0"
+      }
+    },
+    {
+      "t": "ACEHBStateChangeEvent",
+      "st": "14403",
+      "sseq": 4,
+      "bl": "0",
+      "old": {
+        "ps": 4
+      },
+      "new": {
+        "ps": 13,
+        "pht": 167125,
+        "br": "0"
+      }
+    },
+    {
+      "t": "ACEHBStateChangeEvent",
+      "st": "16699",
+      "sseq": 5,
+      "bl": "0",
+      "old": {
+        "ps": 13
+      },
+      "new": {
+        "ps": 1,
+        "pht": 167125,
+        "br": "0"
+      }
+    },
+    {
+      "t": "ACEHBStateChangeEvent",
+      "st": "16764",
+      "sseq": 6,
+      "bl": "0",
+      "old": {
+        "ps": 1
+      },
+      "new": {
+        "ps": 14,
+        "adBreakNumbers": 2,
+        "adBreakLength": 60.127,
+        "pht": 167125,
+        "br": "0"
+      }
+    },
+    {
+      "t": "ACEHBStateChangeEvent",
+      "st": "16790",
+      "sseq": 7,
+      "bl": "0",
+      "old": {
+        "ps": 14
+      },
+      "new": {
+        "ps": 10,
+        "adName": "23343-1_Sprint_Sprint_UF_D_F_19/20_Horizon_Video_FOX",
+        "adId": "211810745",
+        "adPosition": 1,
+        "adLength": 30.03,
+        "adClickThroughUrl": "https://dts.innovid.com/clktru/action/vclk",
+        "adCampaignId": "NP",
+        "adCreativeUrl": "NP",
+        "adPlacementId": "NP",
+        "adSiteId": "NP",
+        "pht": 167125,
+        "br": "0"
+      }
+    },
+    {
+      "t": "ACEHBBitrateChangeEvent",
+      "st": "19164",
+      "sseq": 8,
+      "bl": "0",
+      "old": {
+        "br": "0"
+      },
+      "new": {
+        "br": "2296",
+        "pht": 1046
+      }
+    }
+  ],
+  "bl": "22108",
+  "sst": "1586827053535",
+  "vid": "r0MNi3y5XBgn9NxkK8kypAIP6RBiivn9YuovruZT3ok",
+  "sid": "009774192876",
+  "did": "2FAB12F87116F752EA8262119959A300",
+  "ppid": "nVcHPoRh2SAwEUswkkJjTg==",
+  "st": "19993",
+  "pt": "Phoenix - Android",
+  "cid": "3442c498-82cf-771e-adf6-589a0d87d1f4",
+  "an": "[3442c498-82cf-771e-adf6-589a0d87d1f4][EP032285130001][Almost Family - S1:E1 - Pilot]",
+  "strmt": "VOD",
+  "ptv": "1.14.0-1",
+  "os": "android",
+  "osVer": "9",
+  "dn": "Galaxy Note8",
+  "dt": "Handset",
+  "dm": "SM-N950U",
+  "dmfg": "samsung",
+  "dl": "en-US",
+  "ip": "71.145.236.234",
+  "lat": "34.14",
+  "long": "-118.14",
+  "streamID": "b7f3f0c0-7ded-11ea-bbd0-b588d1117110",
+  "daiType": "SSAI",
+  "cl": 3060,
+  "hbseq": 0,
+  "t": "ACEHBSessionHb",
+  "url": "https://csm-e-dfwvod-eb.geoloc.yospace.com/csm/access/200352391...",
+  "afps": 30,
+  "br": "2296",
+  "ps": 10
+}

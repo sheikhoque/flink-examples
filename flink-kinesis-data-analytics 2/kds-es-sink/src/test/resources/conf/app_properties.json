@@ -1,0 +1,16 @@
+[
+  {
+    "PropertyGroupId": "localw",
+    "PropertyMap": {
+      "flink.stream.initpos": "LATEST",
+      "sourceEndpoint": "kinesis://video-metrics-loadtest-buffer",
+      "region": "us-west-2",
+      "intervalLength": "1,60",
+      "intervalStatsEndpoint": "ess://search-raptor-buffer-test-oiwiv2cmhmgtvlnl2d25j72mei.us-west-2.es.amazonaws.com",
+      "es.username": "raptor",
+      "es.password": "raPtor1234!",
+      "intervalStatsIndexName": "sessions",
+      "sessionStatsEndpoint": "dummy://null"
+    }
+  }
+]

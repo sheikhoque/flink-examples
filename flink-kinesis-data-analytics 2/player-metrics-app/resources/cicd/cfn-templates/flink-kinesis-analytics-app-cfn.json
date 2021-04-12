@@ -1,0 +1,327 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Build Kinesis Analytics App",
+  "Mappings": {
+    "EnvironmentToSecurityGroup": {
+      "dev-int": {
+        "SecurityGroup": "sg-ae5fb8d4"
+      },
+      "prod": {
+        "SecurityGroup": "sg-ae5fb8d4"
+      },
+      "sandbox": {
+        "SecurityGroup": "sg-ae5fb8d4"
+      },
+      "stage": {
+        "SecurityGroup": "sg-ae5fb8d4"
+      }
+    },
+    "EnvironmentToSubnetId": {
+      "dev-int": {
+        "SubnetID1": "subnet-9f11b8d4",
+        "SubnetID2": "subnet-38008f41"
+      },
+      "prod": {
+        "SubnetID1": "subnet-9f11b8d4",
+        "SubnetID2": "subnet-38008f41"
+      },
+      "sandbox": {
+        "SubnetID1": "subnet-9f11b8d4",
+        "SubnetID2": "subnet-38008f41"
+      },
+      "stage": {
+        "SubnetID1": "subnet-9f11b8d4",
+        "SubnetID2": "subnet-38008f41"
+      }
+    }
+  },
+  "Outputs": {
+    "KinesisAnalyticsFlinkApplication": {
+      "Description": "The ARN of the KDA",
+      "Export": {
+        "Name": "aeg-videoquality-${parameters.cloudFormationStackName}-kda"
+      },
+      "Value": {
+        "Ref": "KinesisAnalyticsFlinkApplication"
+      }
+    }
+  },
+  "Parameters": {
+    "EnvironmentName": {
+      "AllowedValues": [
+        "prod",
+        "stage",
+        "dev-int",
+        "sandbox"
+      ],
+      "ConstraintDescription": "must be a prod, stage, dev-int or sandbox",
+      "Default": "${parameters.EnvironmentName}",
+      "Description": "The environment name",
+      "Type": "String"
+    },
+    "FlinkApplicationS3BucketArn": {
+      "Default": "arn:aws:s3:::${parameters.Infras3Bucket}",
+      "Description": "S3 bucket of the kenisis application",
+      "Type": "String"
+    },
+    "FlinkApplicationS3Path": {
+      "Default": "${parameters.FlinkApplicationS3Path}",
+      "Description": "File Name to be deployed in KDA",
+      "Type": "String"
+    },
+    "InfracloudFormationStackName": {
+      "Default": "test",
+      "Description": "Name of the infrastructure cloudformation stack",
+      "Type": "String"
+    },
+    "Infras3Bucket": {
+      "Default": "${parameters.Infras3Bucket}",
+      "Description": "S3 Bucket name for Infrastructure(Lambda Functions)",
+      "Type": "String"
+    },
+    "cdnMapLoc": {
+      "Default": "s3://${parameters.Infras3Bucket}/flink_app_load/cdn_url_mapping.csv",
+      "Description": "CDN Map Location",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "FlinkLogGroup": {
+      "Properties": {
+        "LogGroupName": "/aws/kinesis-analytics/aeg-videoquality-${parameters.cloudFormationStackName}-loggroup",
+        "RetentionInDays": 7
+      },
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "FlinkLogStream": {
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "FlinkLogGroup"
+        },
+        "LogStreamName": "aeg-videoquality-${parameters.cloudFormationStackName}-logstream"
+      },
+      "Type": "AWS::Logs::LogStream"
+    },
+    "KdaStart": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": "KdaVPCUpdate",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:aeg-videoquality-start-kda"
+        },
+        "kda_name": "aeg-videoquality-${parameters.cloudFormationStackName}-kda"
+      },
+      "Type": "Custom::KdaStart"
+    },
+    "KdaVPCUpdate": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": "KinesisAnalyticsFlinkApplication",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:aeg-videoquality-kda-update-vpc"
+        },
+        "kda_name": "aeg-videoquality-${parameters.cloudFormationStackName}-kda",
+        "sec_group": [
+          {
+            "Fn::ImportValue": "aeg-videoquality-${parameters.cloudFormationStackName}-kda-sg-${parameters.EnvironmentName}"
+          }
+        ],
+        "subnet_1": [
+          {
+            "Fn::FindInMap": [
+              "EnvironmentToSubnetId",
+              {
+                "Ref": "EnvironmentName"
+              },
+              "SubnetID1"
+            ]
+          }
+        ],
+        "subnet_2": [
+          {
+            "Fn::FindInMap": [
+              "EnvironmentToSubnetId",
+              {
+                "Ref": "EnvironmentName"
+              },
+              "SubnetID2"
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::KdaVPCUpdate"
+    },
+    "KinesisAnalyticsExecRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": "{\n    \"Statement\": [\n    {\n        \"Effect\": \"Allow\",\n        \"Principal\": { \"Service\": [ \"kinesisanalytics.amazonaws.com\" ]},\n        \"Action\": [ \"sts:AssumeRole\" ]\n    }]\n}\n",
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "es:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::ImportValue": "aeg-videoquality-${parameters.cloudFormationStackName}-es-arn-${parameters.EnvironmentName}"
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "logs:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "s3:GetObjectVersion",
+                    "s3:GetObject"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "arn:aws:s3:::${parameters.Infras3Bucket}",
+                    "arn:aws:s3:::${parameters.Infras3Bucket}/*"
+                  ]
+                },
+                {
+                  "Action": [
+                    "kinesis:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::ImportValue": "aeg-videoquality-${parameters.cloudFormationStackName}-InputKinesisStream-${parameters.EnvironmentName}"
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "kinesis:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::ImportValue": "aeg-videoquality-${parameters.cloudFormationStackName}-SessionKinesisStream-${parameters.EnvironmentName}"
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "kinesisanalytics:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "ec2:DescribeVpcs",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeDhcpOptions",
+                    "ec2:CreateNetworkInterface",
+                    "ec2:CreateNetworkInterfacePermission",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DeleteNetworkInterface"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "aeg-videoquality-${parameters.cloudFormationStackName}"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "KinesisAnalyticsFlinkApplication": {
+      "Properties": {
+        "ApplicationConfiguration": {
+          "ApplicationCodeConfiguration": {
+            "CodeContent": {
+              "S3ContentLocation": {
+                "BucketARN": {
+                  "Ref": "FlinkApplicationS3BucketArn"
+                },
+                "FileKey": {
+                  "Ref": "FlinkApplicationS3Path"
+                }
+              }
+            },
+            "CodeContentType": "ZIPFILE"
+          },
+          "ApplicationSnapshotConfiguration": {
+            "SnapshotsEnabled": false
+          },
+          "EnvironmentProperties": {
+            "PropertyGroups": [
+              {
+                "PropertyGroupId": "VideoStatsApp",
+                "PropertyMap": {
+                  "cdn.map.loc": {
+                    "Ref": "cdnMapLoc"
+                  },
+                  "flink.stream.initpos": "TRIM_HORIZON",
+                  "intervalLength": "1,60",
+                  "intervalStatsEndpoint": "ess://${parameters.ElasticsearchEndpoint}",
+                  "intervalStatsIndexName": "sessions",
+                  "parallelism": 32,
+                  "region": "us-west-2",
+                  "sessionStatsEndpoint": "kinesis://aeg-videoquality-${parameters.cloudFormationStackName}-session-kdf-${parameters.EnvironmentName}",
+                  "sourceEndpoint": "kinesis://aeg-videoquality-${parameters.cloudFormationStackName}-kds-input-${parameters.EnvironmentName}",
+                  "appControlEndpoint":"s3://${parameters.Infras3Bucket}/control-signals/command.json",
+                  "controlEndpointRescanInterval":10000,
+                  "maxMindASNEndpoint":"s3://${parameters.Infras3Bucket}/maxmind/GeoLite2-ASN.mmdb",
+                  "maxMindCityEndpoint":"s3://${parameters.Infras3Bucket}/maxmind/GeoLite2-City.mmdb"
+                }
+              }
+            ]
+          },
+          "FlinkApplicationConfiguration": {
+            "MonitoringConfiguration": {
+              "ConfigurationType": "CUSTOM",
+              "LogLevel": "INFO",
+              "MetricsLevel": "TASK"
+            },
+            "ParallelismConfiguration": {
+              "AutoScalingEnabled": true,
+              "ConfigurationType": "CUSTOM",
+              "Parallelism": 32,
+              "ParallelismPerKPU": 1
+            }
+          }
+        },
+        "ApplicationName": "aeg-videoquality-${parameters.cloudFormationStackName}-kda",
+        "RuntimeEnvironment": "FLINK-1_8",
+        "ServiceExecutionRole": {
+          "Fn::Sub": "${KinesisAnalyticsExecRole.Arn}"
+        }
+      },
+      "Type": "AWS::KinesisAnalyticsV2::Application"
+    },
+    "KinesisAnalyticsLogging": {
+      "Properties": {
+        "ApplicationName": {
+          "Fn::Sub": "${KinesisAnalyticsFlinkApplication}"
+        },
+        "CloudWatchLoggingOption": {
+          "LogStreamARN": {
+            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${FlinkLogGroup}:log-stream:${FlinkLogStream}"
+          }
+        }
+      },
+      "Type": "AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption"
+    }
+  },
+  "Transform": "AWS::Serverless-2016-10-31"
+}

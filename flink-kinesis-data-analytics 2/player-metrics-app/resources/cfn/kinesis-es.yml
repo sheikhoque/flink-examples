@@ -1,0 +1,566 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  FlinkApplicationS3BucketArn:
+    Type: String
+    Default: arn:aws:s3:::att-dtv-raptor-kda
+
+  FlinkApplicationS3Path:
+    Type: String
+    Default: flink_app_load/player-metrics-app-0.0.1-SNAPSHOT.jar
+
+  KinesisStreamName:
+    Type: String
+    Default: video-metrics
+
+  ReportingKinesisFirehoseName:
+    Type: String
+    Default: video-sessions-kdf
+
+  ReportingKinesisFirehoseLogGroupName:
+    Type: String
+    Default: video-sessions-kdf-logs
+
+  FlinkAppName:
+    Type: String
+    Default: VideoMetrics
+
+  ElasticSearchDomainName:
+    Type: String
+    Description: Name of ElasticSearch domain
+    Default: es-video-metrics
+
+  ElasticSearchSecurityGroupName:
+    Type: String
+    Description: Security Group name to allow traffic to ES
+    Default: security-group-elasticsearch
+
+  ElasticSearchSecurityGroupDesc:
+    Type: String
+    Description: Security Group description
+    Default: "elastic search security group to allow inbound API"
+
+  ElasticSearchVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID to use for ElasticSearch
+    Default: "vpc-09d0d2e1e95b842ca"
+
+  ElasticSearchSecurityCidr:
+    Type: String
+    Description: CIDR block to allow inbound traffic in ElasticSearch
+    Default: "10.229.0.0/16"
+
+  ElasticSearchSubnetIds:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    #Type: CommaDelimitedList
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    ConstraintDescription: >-
+      must be a list of at least two existing subnets associated with at least
+      two different availability zones. They should be residing in the selected
+      Virtual Private Cloud.
+    Default: subnet-09fcb4fecefbeabd6,subnet-0fae9377dd7122102
+
+
+Outputs:
+
+  KibanaDashboardURL:
+    Description: URL to access the Kibana dasboard
+    Value: !Sub https://${ElasticSearchDomain.DomainEndpoint}/_plugin/kibana/app/kibana#/dashboard/nyc-tlc-dashboard
+
+  CloudWatchDashboardURL:
+    Description: URL to access metrics in a CloudWatch dasboard
+    Value: !Sub https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${CloudWatchDashboard}
+
+
+Resources:
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 2
+      Name: !Ref KinesisStreamName
+      RetentionPeriodHours: 24
+
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - ''
+        - - ssd-report-data-
+          - !Ref 'AWS::StackName'
+          - '-'
+          - !Ref 'AWS::AccountId'
+          - '-'
+          - !Ref 'AWS::Region'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+    DeletionPolicy: Retain
+
+  ElasticSearchSnapshotsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - ''
+        - - es-snapshots-
+          - !Ref 'AWS::StackName'
+          - '-'
+          - !Ref 'AWS::AccountId'
+          - '-'
+          - !Ref 'AWS::Region'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    DeletionPolicy: Retain
+
+  KinesisFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Ref ReportingKinesisFirehoseName
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        RoleARN: !GetAtt KdfS3DeliveryRole.Arn
+        BucketARN: !Join
+          - ''
+          - - 'arn:aws:s3:::'
+            - !Ref ReportBucket
+        Prefix: !Join
+          - ''
+          - - 'sessions/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
+        ErrorOutputPrefix: !Join
+            - ''
+            - - 'sessions_errors/!{firehose:error-output-type}/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
+        BufferingHints:
+          IntervalInSeconds: 900
+          SizeInMBs: 128
+        CompressionFormat: UNCOMPRESSED
+        EncryptionConfiguration:
+          NoEncryptionConfig: NoEncryption
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref ReportingKinesisFirehoseLogGroupName
+          LogStreamName: S3Delivery
+        S3BackupMode: Disabled
+
+  KdfS3DeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+      Path: "/"
+      Policies:
+        - PolicyName: firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref ReportBucket
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref ReportBucket
+                      - '*'
+              - Effect: Allow
+                Action: 'logs:PutLogEvents'
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:logs:'
+                      - !Ref 'AWS::Region'
+                      - ':'
+                      - !Ref 'AWS::AccountId'
+                      - 'log-group:/aws/kinesisfirehose/'
+                      - !Ref ReportingKinesisFirehoseLogGroupName
+                      - ':log-stream:*'
+
+  KinesisAnalyticsFlinkApplication:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      ApplicationName: !Ref FlinkAppName
+      RuntimeEnvironment: FLINK-1_6
+      ServiceExecutionRole: !Sub ${KinesisAnalyticsServiceRole.Arn}
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: !Ref FlinkApplicationS3BucketArn
+              FileKey: !Ref FlinkApplicationS3Path
+          CodeContentType: ZIPFILE
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: VideoStatsApp
+              PropertyMap:
+                ElasticsearchEndpoint: !Sub https://${ElasticSearchDomain.DomainEndpoint}
+                ElasticsearchIndex: sessions
+                HighResolutionMinutes: 1
+                ProcessingWindowTime: 10
+                cdn.map.loc: att-dtv-raptor-kda/flink_app_load/cdn_url_mapping.csv
+                parallelism: 32
+                flink.stream.initpos: LATEST
+                inputStreamName: video-metrics-loadtest #!Sub ${KinesisStream}
+                region: !Sub ${AWS::Region}
+                ssd-firehose-endpoint: fh-video-metrics-report
+        FlinkApplicationConfiguration:
+          ParallelismConfiguration:
+            ConfigurationType: CUSTOM
+            AutoScalingEnabled: true
+            Parallelism: 32
+            ParallelismPerKPU: 1
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            LogLevel: INFO
+            MetricsLevel: TASK
+        ApplicationSnapshotConfiguration:
+          SnapshotsEnabled: true
+#        VpcConfigurations:
+#          SubnetIds: !Ref ElasticSearchSubnetIds
+#          SecurityGroupIds:
+#            - !Ref ElasticSearchSecurityGroup
+
+  KinesisAnalyticsLogging:
+    Type: "AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption"
+    Properties:
+      ApplicationName: !Sub ${KinesisAnalyticsFlinkApplication}
+      CloudWatchLoggingOption:
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${FlinkLogGroup}:log-stream:${FlinkLogStream}
+
+  FlinkLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      RetentionInDays: 7
+
+  FlinkLogStream:
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName: !Ref FlinkLogGroup
+
+
+  ElasticSearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: !Ref ElasticSearchDomainName
+      AccessPolicies:
+        !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "*"
+                ]
+              },
+              "Action": [
+                "es:ESHttpGet",
+                "es:ESHttpHead"
+              ],
+              "Resource": "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ElasticSearchDomainName}/*"
+            }
+          ]
+        }
+      ElasticsearchClusterConfig:
+        InstanceCount: 4
+        InstanceType: r5.xlarge.elasticsearch
+        DedicatedMasterCount: 3
+        DedicatedMasterEnabled: true
+        DedicatedMasterType: m4.large.elasticsearch
+        ZoneAwarenessEnabled: true
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 50
+        VolumeType: gp2
+      ElasticsearchVersion: 7.1
+      EncryptionAtRestOptions:
+        Enabled: "true"
+      VPCOptions:
+        SubnetIds: !Ref ElasticSearchSubnetIds
+        SecurityGroupIds:
+          - !Ref ElasticSearchSecurityGroup
+    DeletionPolicy: Retain
+
+  ElasticSearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref ElasticSearchSecurityGroupDesc
+      VpcId: !Ref ElasticSearchVpcId
+      GroupName: !Ref ElasticSearchSecurityGroupName
+      SecurityGroupIngress:
+        - FromPort: '443'
+          IpProtocol: tcp
+          ToPort: '443'
+          CidrIp: !Ref ElasticSearchSecurityCidr
+    DeletionPolicy: Retain
+
+  FlinkNotProcessingFromKinesisAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm if Flink stops reading from the Kinesis stream or falls behind processing the available data
+      Namespace: AWS/KinesisAnalytics
+      MetricName: millisBehindLatest
+      Dimensions:
+        - Name: Id
+          Value: !Join ["_", !Split ["-", !Ref KinesisStream]]
+        - Name: Application
+          Value: !Sub ${KinesisAnalyticsFlinkApplication}
+        - Name: Flow
+          Value: Input
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 60000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: breaching
+
+
+  CloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub ${AWS::StackName}-dashboard
+      DashboardBody: !Sub
+        - |
+          {
+              "widgets": [
+                  {
+                      "type": "metric",
+                      "x": 0,
+                      "y": 0,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "view": "timeSeries",
+                          "stacked": false,
+                          "metrics": [
+                              [ "AWS/Kinesis", "IncomingRecords", "StreamName", "${KinesisStream}", { "yAxis": "right", "stat": "Sum" } ]
+                          ],
+                          "region": "${AWS::Region}",
+                          "period": 60,
+                          "yAxis": {
+                              "left": {
+                                  "min": 0,
+                                  "max": 100
+                              }
+                          }
+                      }
+                  },
+                  {
+                      "type": "metric",
+                      "x": 0,
+                      "y": 0,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "metrics": [
+                              [ "KinesisProducerLibrary", "UserRecordsPut", "StreamName", "${KinesisStream}" ],
+                              [ ".", "KinesisRecordsPut", ".", "." ],
+                              [ "AWS/Kinesis", "IncomingBytes", ".", ".", { "yAxis": "right" } ]
+                          ],
+                          "view": "timeSeries",
+                          "stacked": false,
+                          "region": "${AWS::Region}",
+                          "stat": "Sum",
+                          "title": "Kinesis Stream Incoming Records",
+                          "period": 60
+                      }
+                  },
+                  {
+                      "type": "metric",
+                      "x": 0,
+                      "y": 6,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "metrics": [
+                              [ "AWS/Kinesis", "ReadProvisionedThroughputExceeded", "StreamName", "${KinesisStream}" ],
+                              [ ".", "WriteProvisionedThroughputExceeded", ".", ".", { "yAxis": "right" } ]
+                          ],
+                          "view": "timeSeries",
+                          "stacked": false,
+                          "region": "${AWS::Region}",
+                          "stat": "Average",
+                          "title": "Kinesis Stream Throttling Metrics",
+                          "period": 60
+                      }
+                  },
+                  {
+                      "type": "metric",
+                      "x": 0,
+                      "y": 12,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "metrics": [
+                              [ "AWS/Kinesis", "GetRecords.Bytes", "StreamName", "${KinesisStream}" ],
+                              [ "AWS/KinesisAnalytics", "millisBehindLatest", "Id", "${KinesisStreamNameUnderscore}", "Application", "${KinesisAnalyticsFlinkApplication}", "Flow", "Input", { "yAxis": "right", "stat": "Maximum" } ]
+                          ],
+                          "view": "timeSeries",
+                          "stacked": false,
+                          "region": "${AWS::Region}",
+                          "stat": "Sum",
+                          "title": "Kinesis Analytics Application Metrics",
+                          "period": 60
+                      }
+                  },
+                  {
+                      "type": "metric",
+                      "x": 0,
+                      "y": 18,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "view": "timeSeries",
+                          "stacked": false,
+                          "metrics": [
+                              [ "AWS/ES", "SearchableDocuments", "DomainName", "${ElasticSearchDomain}", "ClientId", "${AWS::AccountId}" ],
+                              [ ".", "CPUUtilization", ".", ".", ".", ".", { "yAxis": "right" } ]
+                          ],
+                          "region": "${AWS::Region}",
+                          "period": 60,
+                          "title": "Elasticsearch Metrics",
+                          "yAxis": {
+                              "left": {
+                                  "min": 0
+                              },
+                              "right": {
+                                  "min": 0,
+                                  "max": 100
+                              }
+                          }
+                      }
+                  },
+                  {
+                      "type": "log",
+                      "x": 0,
+                      "y": 24,
+                      "width": 21,
+                      "height": 6,
+                      "properties": {
+                          "query": "SOURCE '${FlinkLogGroup}' | fields @timestamp, message\n| sort @timestamp desc\n| limit 1000",
+                          "region": "${AWS::Region}",
+                          "title": "Kinesis Analytics Application Logs"
+                      }
+                  }
+              ]
+          }
+        - { KinesisStreamNameUnderscore: !Join ["_", !Split ["-", !Ref KinesisStream]] }
+
+  KinesisAnalyticsServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "kinesisanalytics.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      Policies:
+        -
+          PolicyName: root
+          PolicyDocument:
+            !Sub |
+              {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                      {
+                          "Effect": "Allow",
+                          "Action": [
+                              "s3:GetObject",
+                              "s3:GetObjectVersion"
+                          ],
+                          "Resource": [
+                              "${FlinkApplicationS3BucketArn}/*"
+                          ]
+                      },
+                      {
+                          "Effect": "Allow",
+                          "Action": [
+                              "logs:DescribeLogGroups"
+                          ],
+                          "Resource": [
+                              "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
+                          ]
+                      },
+                      {
+                          "Effect": "Allow",
+                          "Action": [
+                              "logs:DescribeLogStreams",
+                              "logs:PutLogEvents"
+                          ],
+                          "Resource": [
+                              "${FlinkLogGroup.Arn}"
+                          ]
+                      },
+                      {
+                          "Effect": "Allow",
+                          "Action": "kinesis:*",
+                          "Resource": "${KinesisStream.Arn}"
+                      },
+                      {
+                          "Effect": "Allow",
+                          "Action": [
+                            "es:*"
+                          ],
+                          "Resource": "*"
+                      },
+                      {
+                          "Effect": "Allow",
+                          "Action": [
+                            "firehose:*"
+                          ],
+                          "Resource": [
+                            "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:${ReportingKinesisFirehoseName}"
+                          ]
+                      },
+                      {
+                        "Sid": "VPCReadOnlyPermissions",
+                        "Effect": "Allow",
+                        "Action": [
+                            "ec2:DescribeVpcs",
+                            "ec2:DescribeSubnets",
+                            "ec2:DescribeSecurityGroups",
+                            "ec2:DescribeDhcpOptions"
+                        ],
+                        "Resource": "*"
+                    },
+                    {
+                        "Sid": "ENIReadWritePermissions",
+                        "Effect": "Allow",
+                        "Action": [
+                            "ec2:CreateNetworkInterface",
+                            "ec2:CreateNetworkInterfacePermission",
+                            "ec2:DescribeNetworkInterfaces",
+                            "ec2:DeleteNetworkInterface"
+                        ],
+                        "Resource": "*"
+                    }
+                  ]
+              }

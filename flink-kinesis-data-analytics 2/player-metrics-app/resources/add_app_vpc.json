@@ -1,0 +1,12 @@
+{
+  "ApplicationName": "VideoMetrics",
+  "VpcConfiguration": {
+    "SubnetIds": [
+      "subnet-09fcb4fecefbeabd6",
+      "subnet-0fae9377dd7122102"
+    ],
+    "SecurityGroupIds": [
+      "sg-082522d45fd550d3a"
+    ]
+  }
+}

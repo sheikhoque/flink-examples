@@ -1,0 +1,24 @@
+{
+	"sid": 1,
+	"seq_st": 0,
+	"seq_end": 1,
+	"cid": "03ADF3A2-5194-4E73-A37D-809C98071A90",
+	"vid": "FFF54F5F-A606-40D6-AF3A-BBD2AFCB1C93",
+	"sst": 1565364490000,
+	"ts": "2019-08-09T15:28",
+	"an": "FC3B1F95-6E4A-46DD-B32E-0C1E4EBBCD27",
+	"ct": "Cellular",
+	"c_md":{
+		"pt": "xplayer",
+		"ptv": "1.0.1"
+	},
+	"cntn_md":{
+		"lv": true
+	},
+	"s_md":{
+		"launchType": "UserClick"
+	},
+	"bl": 10000,
+	"br": 770,
+	"vst":2000
+}

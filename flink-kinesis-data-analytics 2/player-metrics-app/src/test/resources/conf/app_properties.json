@@ -1,0 +1,379 @@
+[
+  {
+    "PropertyGroupId": "playDuration",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/pd.json",
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/playDurationES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": "1",
+      "parallelism": 1,
+      "sessionStatsEndpoint": "file://./output/playDurationSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "no_br",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/no_br.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/no_brES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/no_brSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "rebufferingRatio",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/pd.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/rebufferingRatioES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/rebufferingRatioSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "rebuffRationMultipleSeekInBufferingState",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/buffering_multiple_seek_in_buffer_state.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/rebuffRationMultipleSeekInBufferingStateES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/rebuffRationMultipleSeekInBufferingStateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "SeekInducedRebuffRationMultipleSeekInBufferingState",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/seek_induced_buffering.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/SeekInducedRebuffRationMultipleSeekInBufferingStateES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/SeekInducedRebuffRationMultipleSeekInBufferingStateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "NoBufferingState",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/nobuffering_multiple_seek_without_any_buffering_state.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/NoBufferingStateES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/NoBufferingStateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "NoBufferCompleteState",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/buffering_multiple_seek_nobuffercomplete.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/NoBufferCompleteStateES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/NoBufferCompleteStateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "playDurationWithInterruption",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/pd_interrupted.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/playDurationInterruptedES",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/playDurationInterruptedSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "bitrate",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/br.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/bitrate",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/bitrateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "framerate",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/fr.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/framerate",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/framerateSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "error",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "flink.stream.initpos": "AT_TIMESTAMP",
+      "flink.stream.initpos.timestamp": "1587418201.480",
+      "sourceEndpoint": "file://./data/err.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/error",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "ebvs_vsf",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/ebvs_vsf.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/ebvs_vsf",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "vst",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/vst-bkup.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/vst",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": "1,60",
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "vrt",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/vrt.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/vst",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": "1,60",
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "vpf",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/vpf_issue.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/vpf",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "ebvs",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/ebvs.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/ebvs",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "eop",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "sourceEndpoint": "file://./data/ebvs.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/eop",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/errorSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "attempt",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/attempt.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/attempt",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "file://./output/attemptSSD"
+    }
+  },
+  {
+    "PropertyGroupId": "cdn-pod",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file://./data/cdn-pod.json",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/cdn-pods",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "dummy://null"
+    }
+  },
+  {
+    "PropertyGroupId": "perf",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "controlEndpointRescanInterval": -1,
+      "sourceEndpoint": "file:///Users/alexego/workspace/projects/ATT/flink-kinesis-data-analytics/heartbeat-sorter/target/test-classes/gzip",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoLite2-ASN.mmdb",
+      "region": "us-west-2",
+      "intervalStatsEndpoint": "file://./output/perf",
+      "intervalStatsIndexName": "sessions",
+      "intervalLength": 1,
+      "parallelism": 1,
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv",
+      "sessionStatsEndpoint": "dummy://null"
+    }
+  },
+  {
+    "PropertyGroupId": "kinesis",
+    "PropertyMap": {
+      "appControlEndpoint": "file://./data/command.json",
+      "flink.stream.initpos": "TRIM_HORIZON",
+      "sourceEndpoint": "kinesis://video-metrics-loadtest-locust-throughput",
+      "maxMindCityEndpoint": "file://./GeoLite2-City.mmdb",
+      "maxMindISPEndpoint": "file://./GeoIP2-ISP.mmdb",
+      "region": "us-west-2",
+      "parallelism": 1,
+      "kinesis.shard.assigner": "RoundRobin",
+      "kpl.endpoint": "fake",
+      "intervalStatsEndpoint": "kinesis://video-metrics-loadtest",
+      "intervalStatsIndexName": "sessions",
+      "checkpointTimeout": 3600000,
+      "kpl.loglevel": "error",
+      "intervalLength": "1,60",
+      "cdn.map.location": "file://./conf/cdn_mappings.csv",
+      "dma.map.location": "file://./conf/dma_mapping.csv"
+    }
+  }
+]

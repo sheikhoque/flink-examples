@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  CFNJobName:
+    Type: String
+    Default: aeg-videoquality-conviva-report-generator
+  CFNTriggerName:
+    Type: String
+    Default: aeg-videoquality-conviva-report-job-trigger
+  ScriptLocation:
+    Type: String
+    Default: s3://aeg-videoquality-infra-prod/conviva_session_report.py
+    Description: 'location of the glue script file, you dont need to append "s3://". CloudFormation template will do it.'
+  ConvivaSSDReportDestination:
+    Type: String
+    Default: s3://aeg-videoquality-session-prod/conviva_ssd
+    Description: 'location of the transformed csv files, need to append "s3://".'
+  InputSessionDataSource:
+    Type: String
+    Default: s3://aeg-videoquality-session-prod/sessions
+    Description: 'location of input directory of json files, need to append "s3://".'
+  ConvivaSSDReportCSVNamePrefix:
+    Type: String
+    Default: MatchingDailySessionLog_ATTTV_prod
+    Description: "csv file name prefix"
+#
+#
+# Resources section defines metadata for the Data Catalog
+Resources:
+  #Create IAM Role
+  CFNGlueJobIAMRoleName:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: !Join ["-", ["AWSGlue", !Ref CFNJobName, "policy"]]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "s3:*"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [
+                              1,
+                              "Fn::Split":
+                                ["//", !Ref ConvivaSSDReportDestination],
+                            ],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [1, "Fn::Split": ["//", !Ref ScriptLocation]],
+                          "*",
+                        ],
+                      ],
+                  ]
+              - Effect: "Allow"
+                Action: "s3:GetObject"
+                Resource:
+                  [
+                    "Fn::Join":
+                      [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          "Fn::Select":
+                            [
+                              1,
+                              "Fn::Split": ["//", !Ref InputSessionDataSource],
+                            ],
+                          "*",
+                        ],
+                      ],
+                  ]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+  # The script already exists and is called by this job
+  CFNJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Role: !Ref CFNGlueJobIAMRoleName
+      Description: Job created with CloudFormation to generate conviva ssd report
+      GlueVersion: "2.0"
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          !Ref ScriptLocation
+          # for access to directories use proper IAM role with permission to buckets and folders that begin with "aws-glue-"
+          # script uses temp directory from job definition if required (temp directory not used S3 to S3)
+          # script defines target for output as s3://aws-glue-target/sal
+        PythonVersion: "3"
+      DefaultArguments:
+        --CONVIVA_SSD_DEST: !Ref ConvivaSSDReportDestination
+        --INPUT_SESSION_DATA_SOURCE: !Ref InputSessionDataSource
+        --CONVIVA_SSD_REPORT_NAME_PREFIX: !Ref ConvivaSSDReportCSVNamePrefix
+        --REPORT_DATE: " "
+      AllocatedCapacity: 5
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      Name: !Ref CFNJobName
+      # Create trigger to run an existing job (CFNJobName) on a cron schedule.
+  CFNTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name:
+        Ref: CFNTriggerName
+      Description: Trigger created with CloudFormation
+      Type: SCHEDULED
+      WorkflowName: { Ref: GlueWorkFlow }
+      Actions:
+        - JobName: !Ref CFNJob
+        # Arguments: JSON object
+      StartOnCreation: true
+      Schedule: cron(00 08 * * ? *)
+      #Predicate:
+  GlueWorkFlow:
+    Type: AWS::Glue::Workflow
+    Properties: { Name: aeg-videoquality-conviva-report-workflow }

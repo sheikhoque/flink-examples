@@ -1,0 +1,12 @@
+[{
+    "PropertyGroupId": "StatsESApp",
+    "PropertyMap": {
+        "sourceEndpoint": "kinesis://video-metrics-loadtest",
+        "flink.stream.initpos": "LATEST",
+        "region":"us-west-2",
+        "intervalLength": "1",
+        "intervalStatsEndpoint":"ess://search-kinesis-elasti-1mp3rw0zypl07-eegkhp4pvktxw2ffsb6ogry2ia.us-west-2.es.amazonaws.com",
+        "intervalStatsIndexName":"sessions"
+    }
+
+}]

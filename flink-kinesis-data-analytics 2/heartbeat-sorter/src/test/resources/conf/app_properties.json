@@ -1,0 +1,15 @@
+[
+  {
+    "PropertyGroupId": "Parameters",
+    "PropertyMap": {
+      "region":"us-west-2",
+      "sourceEndpoint": "file:///Users/alexego/workspace/projects/ATT/raw/",
+      "targetEndpoint": "file://./gzip",
+      "filePathPrefix":  "year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/",
+      "startDate": "2020-03-01",
+      "endDate": "2020-03-26",
+      "sessionTTL": 24,
+      "parallelism": 4
+    }
+  }
+]

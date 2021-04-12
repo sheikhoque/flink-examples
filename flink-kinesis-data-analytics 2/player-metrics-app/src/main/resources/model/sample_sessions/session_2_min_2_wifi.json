@@ -1,0 +1,23 @@
+{
+	"sid": 2,
+	"seq_st": 0,
+	"seq_end": 1,
+	"cid": "F0FA898E-8F3D-4306-ABC4-11BECD011F79",
+	"vid": "7EA127EA-FB9F-49F9-9B8C-8FB0CE25E4F7",
+	"sst": 1565364490000,
+	"ts": "2019-08-09T15:29",
+	"an": "218305F7-962E-446D-A810-E628A87E7244",
+	"ct": "WIFI",
+	"c_md":{
+		"pt": "xplayer",
+		"ptv": "1.0.1"
+	},
+	"cntn_md":{
+		"lv": true
+	},
+	"s_md":{
+		"launchType": "UserClick"
+	},
+	"bl": 25000,
+	"br": 1250
+}
